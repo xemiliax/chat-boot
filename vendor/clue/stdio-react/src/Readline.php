@@ -5,10 +5,15 @@ namespace Clue\React\Stdio;
 use Clue\React\Term\ControlCodeParser;
 use Clue\React\Utf8\Sequencer as Utf8Sequencer;
 use Evenement\EventEmitter;
+use Evenement\EventEmitterInterface;
 use React\Stream\ReadableStreamInterface;
 use React\Stream\Util;
 use React\Stream\WritableStreamInterface;
 
+/**
+ * @deprecated use Stdio instead
+ * @see Stdio
+ */
 class Readline extends EventEmitter implements ReadableStreamInterface
 {
     private $prompt = '';
@@ -16,6 +21,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
     private $linepos = 0;
     private $echo = true;
     private $move = true;
+    private $bell = true;
     private $encoding = 'utf-8';
 
     private $input;
@@ -31,7 +37,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
     private $autocomplete = null;
     private $autocompleteSuggestions = 8;
 
-    public function __construct(ReadableStreamInterface $input, WritableStreamInterface $output)
+    public function __construct(ReadableStreamInterface $input, WritableStreamInterface $output, EventEmitterInterface $base = null)
     {
         $this->input = $input;
         $this->output = $output;
@@ -56,13 +62,13 @@ class Readline extends EventEmitter implements ReadableStreamInterface
             "\033[D" => 'onKeyLeft',
 
             "\033[1~" => 'onKeyHome',
-            "\033[2~" => 'onKeyInsert',
+//          "\033[2~" => 'onKeyInsert',
             "\033[3~" => 'onKeyDelete',
             "\033[4~" => 'onKeyEnd',
 
 //          "\033[20~" => 'onKeyF10',
         );
-        $decode = function ($code) use ($codes, $that) {
+        $decode = function ($code) use ($codes, $that, $base) {
             // The user confirms input with enter key which should usually
             // generate a NL (`\n`) character. Common terminals also seem to
             // accept a CR (`\r`) character in place and handle this just like a
@@ -73,6 +79,13 @@ class Readline extends EventEmitter implements ReadableStreamInterface
                 $code = "\n";
             }
 
+            // forward compatibility: check if any key binding exists on base Stdio instance
+            if ($base !== null && $base->listeners($code)) {
+                $base->emit($code, array($code));
+                return;
+            }
+
+            // deprecated: check if any key binding exists on this Readline instance
             if ($that->listeners($code)) {
                 $that->emit($code, array($code));
                 return;
@@ -90,7 +103,9 @@ class Readline extends EventEmitter implements ReadableStreamInterface
 
         // push resulting data through utf8 sequencer
         $utf8 = new Utf8Sequencer($parser);
-        $utf8->on('data', array($this, 'onFallback'));
+        $utf8->on('data', function ($data) use ($that, $base) {
+            $that->onFallback($data, $base);
+        });
 
         // process all stream events (forwarded from input stream)
         $utf8->on('end', array($this, 'handleEnd'));
@@ -106,6 +121,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      * @param string $prompt
      * @return self
      * @uses self::redraw()
+     * @deprecated use Stdio::setPrompt() instead
      */
     public function setPrompt($prompt)
     {
@@ -123,6 +139,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      *
      * @return string
      * @see self::setPrompt()
+     * @deprecated use Stdio::getPrompt() instead
      */
     public function getPrompt()
     {
@@ -154,6 +171,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      * @param boolean|string $echo echo can be turned on (boolean true) or off (boolean true), or you can supply a single character replacement string
      * @return self
      * @uses self::redraw()
+     * @deprecated use Stdio::setEcho() instead
      */
     public function setEcho($echo)
     {
@@ -180,6 +198,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      * @param boolean $move
      * @return self
      * @uses self::redraw()
+     * @deprecated use Stdio::setMove() instead
      */
     public function setMove($move)
     {
@@ -200,6 +219,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      * @see self::moveCursorTo() to move the cursor to a given character position
      * @see self::moveCursorBy() to move the cursor by given number of characters
      * @see self::setMove() to toggle whether the user can move the cursor position
+     * @deprecated use Stdio::getCursorPosition() instead
      */
     public function getCursorPosition()
     {
@@ -231,6 +251,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      * @see self::moveCursorBy() to move the cursor by given number of characters
      * @see self::setMove() to toggle whether the user can move the cursor position
      * @see self::setEcho()
+     * @deprecated use Stdio::getCursorCell() instead
      */
     public function getCursorCell()
     {
@@ -256,6 +277,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      * @return self
      * @uses self::moveCursorTo()
      * @uses self::redraw()
+     * @deprecated use Stdio::moveCursorBy() instead
      */
     public function moveCursorBy($n)
     {
@@ -273,6 +295,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      * @param int $n
      * @return self
      * @uses self::redraw()
+     * @deprecated use Stdio::moveCursorTo() instead
      */
     public function moveCursorTo($n)
     {
@@ -299,6 +322,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      * @param string $input
      * @return self
      * @uses self::redraw()
+     * @deprecated use Stdio::addInput() instead
      */
     public function addInput($input)
     {
@@ -330,6 +354,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      * @param string $input
      * @return self
      * @uses self::redraw()
+     * @deprecated use Stdio::setInput() instead
      */
     public function setInput($input)
     {
@@ -356,6 +381,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      * get current text input buffer
      *
      * @return string
+     * @deprecated use Stdio::getInput() instead
      */
     public function getInput()
     {
@@ -368,6 +394,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      * @param string $line
      * @return self
      * @uses self::limitHistory() to make sure list does not exceed limits
+     * @deprecated use Stdio::addHistory() instead
      */
     public function addHistory($line)
     {
@@ -380,6 +407,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      * Clears the complete history list
      *
      * @return self
+     * @deprecated use Stdio::clearHistory() instead
      */
     public function clearHistory()
     {
@@ -398,6 +426,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      * Returns an array with all lines in the history
      *
      * @return string[]
+     * @deprecated use Stdio::listHistory() instead
      */
     public function listHistory()
     {
@@ -409,6 +438,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      *
      * @param int|null $limit
      * @return self
+     * @deprecated use Stdio::limitHistory() instead
      */
     public function limitHistory($limit)
     {
@@ -443,6 +473,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      * @param callable|null $autocomplete
      * @return self
      * @throws \InvalidArgumentException if the given callable is invalid
+     * @deprecated use Stdio::setAutocomplete() instead
      */
     public function setAutocomplete($autocomplete)
     {
@@ -453,6 +484,26 @@ class Readline extends EventEmitter implements ReadableStreamInterface
         $this->autocomplete = $autocomplete;
 
         return $this;
+    }
+
+    /**
+     * Whether or not to emit a audible/visible BELL signal when using a disabled function
+     *
+     * By default, this class will emit a BELL signal when using a disable function,
+     * such as using the <kbd>left</kbd> or <kbd>backspace</kbd> keys when
+     * already at the beginning of the line.
+     *
+     * Whether or not the BELL is audible/visible depends on the termin and its
+     * settings, i.e. some terminals may "beep" or flash the screen or emit a
+     * short vibration.
+     *
+     * @param bool $bell
+     * @return void
+     * @internal use Stdio::setBell() instead
+     */
+    public function setBell($bell)
+    {
+        $this->bell = (bool)$bell;
     }
 
     /**
@@ -504,35 +555,41 @@ class Readline extends EventEmitter implements ReadableStreamInterface
     public function onKeyBackspace()
     {
         // left delete only if not at the beginning
-        $this->deleteChar($this->linepos - 1);
+        if ($this->linepos === 0) {
+            $this->bell();
+        } else {
+            $this->deleteChar($this->linepos - 1);
+        }
     }
 
     /** @internal */
     public function onKeyDelete()
     {
         // right delete only if not at the end
-        $this->deleteChar($this->linepos);
-    }
-
-    /** @internal */
-    public function onKeyInsert()
-    {
-        // TODO: toggle insert mode
+        if ($this->isEol()) {
+            $this->bell();
+        } else {
+            $this->deleteChar($this->linepos);
+        }
     }
 
     /** @internal */
     public function onKeyHome()
     {
-        if ($this->move) {
+        if ($this->move && $this->linepos !== 0) {
             $this->moveCursorTo(0);
+        } else {
+            $this->bell();
         }
     }
 
     /** @internal */
     public function onKeyEnd()
     {
-        if ($this->move) {
+        if ($this->move && !$this->isEol()) {
             $this->moveCursorTo($this->strlen($this->linebuffer));
+        } else {
+            $this->bell();
         }
     }
 
@@ -540,6 +597,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
     public function onKeyTab()
     {
         if ($this->autocomplete === null) {
+            $this->bell();
             return;
         }
 
@@ -589,6 +647,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
 
         // return if neither of the possible words match
         if (!$words) {
+            $this->bell();
             return;
         }
 
@@ -657,16 +716,20 @@ class Readline extends EventEmitter implements ReadableStreamInterface
     /** @internal */
     public function onKeyLeft()
     {
-        if ($this->move) {
+        if ($this->move && $this->linepos !== 0) {
             $this->moveCursorBy(-1);
+        } else {
+            $this->bell();
         }
     }
 
     /** @internal */
     public function onKeyRight()
     {
-        if ($this->move) {
+        if ($this->move && !$this->isEol()) {
             $this->moveCursorBy(1);
+        } else {
+            $this->bell();
         }
     }
 
@@ -675,6 +738,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
     {
         // ignore if already at top or history is empty
         if ($this->historyPosition === 0 || !$this->historyLines) {
+            $this->bell();
             return;
         }
 
@@ -695,6 +759,7 @@ class Readline extends EventEmitter implements ReadableStreamInterface
     {
         // ignore if not currently cycling through history
         if ($this->historyPosition === null) {
+            $this->bell();
             return;
         }
 
@@ -715,19 +780,28 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      *
      * @internal
      */
-    public function onFallback($chars)
+    public function onFallback($chars, EventEmitterInterface $base = null)
     {
         // check if there's any special key binding for any of the chars
         $buffer = '';
         foreach ($this->strsplit($chars) as $char) {
-            if ($this->listeners($char)) {
+            // forward compatibility: check if any key binding exists on base Stdio instance
+            // deprecated: check if any key binding exists on this Readline instance
+            $emit = null;
+            if ($base !== null && $base->listeners($char)) {
+                $emit = $base;
+            } else if ($this->listeners($char)) {
+                $emit = $this;
+            }
+
+            if ($emit !== null) {
                 // special key binding for this character found
                 // process all characters before this one before invoking function
                 if ($buffer !== '') {
                     $this->addInput($buffer);
                     $buffer = '';
                 }
-                $this->emit($char, array($char));
+                $emit->emit($char, array($char));
             } else {
                 $buffer .= $char;
             }
@@ -745,18 +819,10 @@ class Readline extends EventEmitter implements ReadableStreamInterface
      * Removing a character left to the current cursor will also move the cursor
      * to the left.
      *
-     * indices out of range (exceeding current input buffer) are simply ignored
-     *
      * @param int $n
-     * @internal
      */
-    public function deleteChar($n)
+    private function deleteChar($n)
     {
-        $len = $this->strlen($this->linebuffer);
-        if ($n < 0 || $n >= $len) {
-            return;
-        }
-
         // read everything up until before current position
         $pre  = $this->substr($this->linebuffer, 0, $n);
         $post = $this->substr($this->linebuffer, $n + 1);
@@ -796,6 +862,11 @@ class Readline extends EventEmitter implements ReadableStreamInterface
         $this->emit('data', array($line . $eol));
     }
 
+    /**
+     * @param string $str
+     * @return int
+     * @codeCoverageIgnore
+     */
     private function strlen($str)
     {
         // prefer mb_strlen() if available
@@ -807,6 +878,13 @@ class Readline extends EventEmitter implements ReadableStreamInterface
         return strlen(preg_replace('/./us', '.', $str));
     }
 
+    /**
+     * @param string $str
+     * @param int    $start
+     * @param ?int   $len
+     * @return string
+     * @codeCoverageIgnore
+     */
     private function substr($str, $start = 0, $len = null)
     {
         if ($len === null) {
@@ -824,7 +902,12 @@ class Readline extends EventEmitter implements ReadableStreamInterface
         return implode('', array_slice($matches[0], $start, $len));
     }
 
-    /** @internal */
+    /**
+     * @internal
+     * @param string $str
+     * @return int
+     * @codeCoverageIgnore
+     */
     public function strwidth($str)
     {
         // prefer mb_strwidth() if available
@@ -849,9 +932,31 @@ class Readline extends EventEmitter implements ReadableStreamInterface
         ));
     }
 
+    /**
+     * @param string $str
+     * @return string[]
+     */
     private function strsplit($str)
     {
         return preg_split('//u', $str, null, PREG_SPLIT_NO_EMPTY);
+    }
+
+    /**
+     * @return bool
+     */
+    private function isEol()
+    {
+        return $this->linepos === $this->strlen($this->linebuffer);
+    }
+
+    /**
+     * @return void
+     */
+    private function bell()
+    {
+        if ($this->bell) {
+            $this->output->write("\x07"); // BEL a.k.a. \a
+        }
     }
 
     /** @internal */
@@ -907,5 +1012,6 @@ class Readline extends EventEmitter implements ReadableStreamInterface
         $this->input->close();
 
         $this->emit('close');
+        $this->removeAllListeners();
     }
 }

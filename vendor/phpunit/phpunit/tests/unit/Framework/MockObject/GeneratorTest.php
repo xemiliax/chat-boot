@@ -126,7 +126,7 @@ class GeneratorTest extends TestCase
         $this->generator->getMockForAbstractClass('Tux');
     }
 
-    public function getMockForAbstractClassExpectsInvalidArgumentExceptionDataprovider()
+    public function getMockForAbstractClassExpectsInvalidArgumentExceptionDataprovider(): array
     {
         return [
             'className not a string'     => [[], ''],
@@ -202,12 +202,59 @@ class GeneratorTest extends TestCase
         $this->assertNull($mock->someMethod());
     }
 
-    public function testMockingOfThrowable(): void
+    public function testMockingOfExceptionWithThrowable(): void
     {
         $stub = $this->generator->getMock(ExceptionWithThrowable::class);
 
         $this->assertInstanceOf(ExceptionWithThrowable::class, $stub);
         $this->assertInstanceOf(Exception::class, $stub);
         $this->assertInstanceOf(MockObject::class, $stub);
+    }
+
+    public function testMockingOfThrowable(): void
+    {
+        $stub = $this->generator->getMock(Throwable::class);
+
+        $this->assertInstanceOf(Throwable::class, $stub);
+        $this->assertInstanceOf(Exception::class, $stub);
+        $this->assertInstanceOf(MockObject::class, $stub);
+    }
+
+    public function testMockingOfThrowableConstructorArguments(): void
+    {
+        $mock = $this->generator->getMock(Throwable::class, null, ['It works']);
+        $this->assertSame('It works', $mock->getMessage());
+    }
+
+    public function testVariadicArgumentsArePassedToOriginalMethod()
+    {
+        /** @var ClassWithVariadicArgumentMethod|MockObject $mock */
+        $mock = $this->generator->getMock(
+            ClassWithVariadicArgumentMethod::class,
+            [],
+            [],
+            '',
+            true,
+            false,
+            true,
+            false,
+            true
+        );
+
+        $arguments = [1, 'foo', false];
+        $this->assertSame($arguments, $mock->foo(...$arguments));
+    }
+
+    public function testVariadicArgumentsArePassedToMockedMethod()
+    {
+        /** @var ClassWithVariadicArgumentMethod|MockObject $mock */
+        $mock = $this->createMock(ClassWithVariadicArgumentMethod::class);
+
+        $arguments = [1, 'foo', false];
+        $mock->expects($this->once())
+            ->method('foo')
+            ->with(...$arguments);
+
+        $mock->foo(...$arguments);
     }
 }

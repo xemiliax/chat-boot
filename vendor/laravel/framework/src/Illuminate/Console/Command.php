@@ -123,7 +123,7 @@ class Command extends SymfonyCommand
      */
     protected function configureUsingFluentDefinition()
     {
-        list($name, $arguments, $options) = Parser::parse($this->signature);
+        [$name, $arguments, $options] = Parser::parse($this->signature);
 
         parent::__construct($this->name = $name);
 
@@ -223,11 +223,29 @@ class Command extends SymfonyCommand
      */
     protected function createInputFromArguments(array $arguments)
     {
-        return tap(new ArrayInput($arguments), function ($input) {
+        return tap(new ArrayInput(array_merge($this->context(), $arguments)), function ($input) {
             if ($input->hasParameterOption(['--no-interaction'], true)) {
                 $input->setInteractive(false);
             }
         });
+    }
+
+    /**
+     * Get all of the context passed to the command.
+     *
+     * @return array
+     */
+    protected function context()
+    {
+        return collect($this->option())->only([
+            'ansi',
+            'no-ansi',
+            'no-interaction',
+            'quiet',
+            'verbose',
+        ])->filter()->mapWithKeys(function ($value, $key) {
+            return ["--{$key}" => $value];
+        })->all();
     }
 
     /**
@@ -281,7 +299,7 @@ class Command extends SymfonyCommand
      * Get the value of a command option.
      *
      * @param  string|null  $key
-     * @return string|array|null
+     * @return string|array|bool|null
      */
     public function option($key = null)
     {
@@ -544,6 +562,24 @@ class Command extends SymfonyCommand
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function isHidden()
+    {
+        return $this->hidden;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setHidden($hidden)
+    {
+        parent::setHidden($this->hidden = $hidden);
+
+        return $this;
+    }
+
+    /**
      * Get the console command arguments.
      *
      * @return array
@@ -566,7 +602,7 @@ class Command extends SymfonyCommand
     /**
      * Get the output implementation.
      *
-     * @return \Symfony\Component\Console\Output\OutputInterface
+     * @return \Illuminate\Console\OutputStyle
      */
     public function getOutput()
     {

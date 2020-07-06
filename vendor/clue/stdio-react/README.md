@@ -17,7 +17,6 @@ without requiring any extensions or special installation.
   * [Stdio](#stdio)
     * [Output](#output)
     * [Input](#input)
-  * [Readline](#readline)
     * [Prompt](#prompt)
     * [Echo](#echo)
     * [Input buffer](#input-buffer)
@@ -25,6 +24,8 @@ without requiring any extensions or special installation.
     * [History](#history)
     * [Autocomplete](#autocomplete)
     * [Keys](#keys)
+    * [Bell](#bell)
+  * [Readline](#readline)
 * [Pitfalls](#pitfalls)
 * [Install](#install)
 * [Tests](#tests)
@@ -39,7 +40,7 @@ Once [installed](#install), you can use the following code to present a prompt i
 $loop = React\EventLoop\Factory::create();
 $stdio = new Stdio($loop);
 
-$stdio->getReadline()->setPrompt('Input > ');
+$stdio->setPrompt('Input > ');
 
 $stdio->on('data', function ($line) use ($stdio) {
     $line = rtrim($line, "\r\n");
@@ -135,33 +136,12 @@ Because the `Stdio` is a well-behaving readable stream that will emit incoming
 data as-is, you can also use this to `pipe()` this stream into other writable
 streams.
 
-```
+```php
 $stdio->pipe($logger);
 ```
 
-You can control various aspects of the console input through the [`Readline`](#readline),
+You can control various aspects of the console input through this interface,
 so read on..
-
-### Readline
-
-The [`Readline`](#readline) class is responsible for reacting to user input and presenting a prompt to the user.
-It does so by reading individual bytes from the input stream and writing the current *user input line* to the output stream.
-
-The *user input line* consists of a *prompt*, following by the current *user input buffer*.
-The `Readline` allows you to control various aspects of this *user input line*.
-
-You can access the current instance through the [`Stdio`](#stdio):
-
-```php
-$readline = $stdio->getReadline();
-```
-
-See above for waiting for user input.
-
-Alternatively, the `Readline` is also a well-behaving readable stream
-(implementing ReactPHP's `ReadableStreamInterface`) that emits each complete
-line as a `data` event, including the trailing newline.
-This is considered advanced usage.
 
 #### Prompt
 
@@ -171,21 +151,21 @@ The `setPrompt($prompt)` method can be used to change the input prompt.
 The prompt will be printed to the *user input line* as-is, so you will likely want to end this with a space:
 
 ```php
-$readline->setPrompt('Input: ');
+$stdio->setPrompt('Input: ');
 ```
 
 The default input prompt is empty, i.e. the *user input line* contains only the actual *user input buffer*.
 You can restore this behavior by passing an empty prompt:
 
 ```php
-$readline->setPrompt('');
+$stdio->setPrompt('');
 ```
 
 The `getPrompt()` method can be used to get the current input prompt.
 It will return an empty string unless you've set anything else:
 
 ```php
-assert($readline->getPrompt() === '');
+assert($stdio->getPrompt() === '');
 ```
 
 #### Echo
@@ -201,7 +181,7 @@ Please note that this often leads to a bad user experience as users will not eve
 Simply pass a boolean `false` like this:
 
 ```php
-$readline->setEcho(false);
+$stdio->setEcho(false);
 ```
 
 Alternatively, you can also *hide* the *user input buffer* by using a replacement character.
@@ -211,13 +191,13 @@ This often provides a better user experience and allows users to still control t
 Simply pass a string replacement character likes this:
 
 ```php
-$readline->setEcho('*');
+$stdio->setEcho('*');
 ```
 
 To restore the original behavior where every character appears as-is, simply pass a boolean `true`:
 
 ```php
-$readline->setEcho(true);
+$stdio->setEcho(true);
 ```
 
 #### Input buffer
@@ -235,7 +215,7 @@ the user (like the last password attempt).
 Simply pass an input string like this:
 
 ```php
-$readline->addInput('hello');
+$stdio->addInput('hello');
 ```
 
 The `setInput($buffer)` method can be used to control the *user input buffer*.
@@ -247,7 +227,7 @@ the user (like the last password attempt).
 Simply pass an input string like this:
 
 ```php
-$readline->setInput('lastpass');
+$stdio->setInput('lastpass');
 ```
 
 The `getInput()` method can be used to access the current *user input buffer*.
@@ -255,7 +235,7 @@ This can be useful if you want to append some input behind the current *user inp
 You can simply access the buffer like this:
 
 ```php
-$buffer = $readline->getInput();
+$buffer = $stdio->getInput();
 ```
 
 #### Cursor
@@ -267,14 +247,14 @@ The `setMove($toggle)` method can be used to control whether users are allowed t
 To disable the left and right arrow keys, simply pass a boolean `false` like this:
 
 ```php
-$readline->setMove(false);
+$stdio->setMove(false);
 ```
 
 To restore the default behavior where the user can use the left and right arrow keys,
 simply pass a boolean `true` like this:
 
 ```php
-$readline->setMove(true);
+$stdio->setMove(true);
 ```
 
 The `getCursorPosition()` method can be used to access the current cursor position,
@@ -283,7 +263,7 @@ This can be useful if you want to get a substring of the current *user input buf
 Simply invoke it like this:
 
 ```php
-$position = $readline->getCursorPosition();
+$position = $stdio->getCursorPosition();
 ```
 
 The `getCursorCell()` method can be used to get the current cursor position,
@@ -296,14 +276,14 @@ This method is mostly useful for calculating the visual cursor position on scree
 but you may also invoke it like this:
 
 ```php
-$cell = $readline->getCursorCell();
+$cell = $stdio->getCursorCell();
 ```
 
 The `moveCursorTo($position)` method can be used to set the current cursor position to the given absolute character position.
 For example, to move the cursor to the beginning of the *user input buffer*, simply call:
 
 ```php
-$readline->moveCursorTo(0);
+$stdio->moveCursorTo(0);
 ```
 
 The `moveCursorBy($offset)` method can be used to change the cursor position
@@ -312,7 +292,7 @@ A positive number will move the cursor to the right - a negative number will mov
 For example, to move the cursor one character to the left, simply call:
 
 ```php
-$readline->moveCursorBy(-1);
+$stdio->moveCursorBy(-1);
 ```
 
 #### History
@@ -331,13 +311,13 @@ If you want to automatically add everything from the user input to the history,
 you may want to use something like this:
 
 ```php
-$stdio->on('data', function ($line) use ($readline) {
+$stdio->on('data', function ($line) use ($stdio) {
     $line = rtrim($line);
-    $all = $readline->listHistory();
+    $all = $stdio->listHistory();
 
     // skip empty line and duplicate of previous line
     if ($line !== '' && $line !== end($all)) {
-        $readline->addHistory($line);
+        $stdio->addHistory($line);
     }
 });
 ```
@@ -347,24 +327,24 @@ return an array with all lines in the history.
 This will be an empty array until you add new entries via `addHistory()`.
 
 ```php
-$list = $readline->listHistory();
+$list = $stdio->listHistory();
 
 assert(count($list) === 0);
 ```
 
-The `addHistory(string $line): Readline` method can be used to
+The `addHistory(string $line): void` method can be used to
 add a new line to the (bottom position of the) history list.
 A following `listHistory()` call will return this line as the last element.
 
 ```php
-$readline->addHistory('a');
-$readline->addHistory('b');
+$stdio->addHistory('a');
+$stdio->addHistory('b');
 
-$list = $readline->listHistory();
+$list = $stdio->listHistory();
 assert($list === array('a', 'b'));
 ```
 
-The `clearHistory(): Readline` method can be used to
+The `clearHistory(): void` method can be used to
 clear the complete history list.
 A following `listHistory()` call will return an empty array until you add new
 entries via `addHistory()` again.
@@ -372,13 +352,13 @@ Note that the history feature will effectively be disabled if the history is
 empty, as the UP and DOWN cursor keys have no function then.
 
 ```php
-$readline->clearHistory();
+$stdio->clearHistory();
 
-$list = $readline->listHistory();
+$list = $stdio->listHistory();
 assert(count($list) === 0);
 ```
 
-The `limitHistory(?int $limit): Readline` method can be used to
+The `limitHistory(?int $limit): void` method can be used to
 set a limit of history lines to keep in memory.
 By default, only the last 500 lines will be kept in memory and everything else
 will be discarded.
@@ -394,10 +374,10 @@ this to obey the `HISTSIZE` environment variable:
 $limit = getenv('HISTSIZE');
 if ($limit === '' || $limit < 0) {
     // empty string or negative value means unlimited
-    $readline->limitHistory(null);
+    $stdio->limitHistory(null);
 } elseif ($limit !== false) {
     // apply any other value if given
-    $readline->limitHistory($limit);
+    $stdio->limitHistory($limit);
 }
 ```
 
@@ -415,13 +395,13 @@ By default, users can use autocompletion by using their TAB keys on the keyboard
 The autocomplete function is not registered by default, thus this feature is
 effectively disabled, as the TAB key has no function then.
 
-The `setAutocomplete(?callable $autocomplete): Readline` method can be used to
+The `setAutocomplete(?callable $autocomplete): void` method can be used to
 register a new autocomplete handler.
 In its most simple form, you won't need to assign any arguments and can simply
 return an array of possible word matches from a callable like this:
 
 ```php
-$readline->setAutocomplete(function () {
+$stdio->setAutocomplete(function () {
     return array(
         'exit',
         'echo',
@@ -452,7 +432,7 @@ on your particular use case.
 
 In order to give you more control over this behavior, the autocomplete function
 actually receives three arguments (similar to `ext-readline`'s
-[`readline_completion_function()`](http://php.net/manual/en/function.readline-completion-function.php)):
+[`readline_completion_function()`](https://www.php.net/manual/en/function.readline-completion-function.php)):
 The first argument will be the current incomplete word according to current
 cursor position and word boundaries, while the second and third argument will be
 the start and end offset of this word within the complete input buffer measured
@@ -464,7 +444,7 @@ is an argument or a root command and the `$word` argument to autocomplete
 partial filename matches like this:
 
 ```php
-$readline->setAutocomplete(function ($word, $offset) {
+$stdio->setAutocomplete(function ($word, $offset) {
     if ($offset <= 1) {
         // autocomplete root commands at offset=0/1 only
         return array('cat', 'rm', 'stat');
@@ -486,10 +466,10 @@ and/or manipulate the [input buffer](#input-buffer) and [cursor](#cursor)
 directly like this:
 
 ```php
-$readline->setAutocomplete(function () use ($readline) {
-    if ($readline->getInput() === 'run') {
-        $readline->setInput('run --test --value=42');
-        $readline->moveCursorBy(-2);
+$stdio->setAutocomplete(function () use ($stdio) {
+    if ($stdio->getInput() === 'run') {
+        $stdio->setInput('run --test --value=42');
+        $stdio->moveCursorBy(-2);
     }
 
     // return empty array so normal autocompletion doesn't kick in
@@ -501,7 +481,7 @@ You can use a `null` value to remove the autocomplete function again and thus
 disable the autocomplete function:
 
 ```php
-$readline->setAutocomplete(null);
+$stdio->setAutocomplete(null);
 ```
 
 #### Keys
@@ -527,7 +507,7 @@ For example, you can use the following code to print some help text when the
 user hits a certain key:
 
 ```php
-$readline->on('?', function () use ($stdio) {
+$stdio->on('?', function () use ($stdio) {
      $stdio->write('Here\'s some help: …' . PHP_EOL);
 });
 ```
@@ -536,8 +516,8 @@ Similarly, this can be used to manipulate the user input and replace some of the
 input when the user hits a certain key:
 
 ```php
-$readline->on('ä', function () use ($readline) {
-     $readline->addInput('a');
+$stdio->on('ä', function () use ($stdio) {
+     $stdio->addInput('a');
 });
 ```
 
@@ -550,14 +530,64 @@ For example, the following code can be used to register a custom function to the
 UP arrow cursor key:
 
 ```php
-$readline->on("\033[A", function () use ($readline) {
-     $readline->setInput(strtoupper($readline->getInput()));
+$stdio->on("\033[A", function () use ($stdio) {
+     $stdio->setInput(strtoupper($stdio->getInput()));
 });
 ```
 
+#### Bell
+
+By default, this project will emit an audible/visible BELL signal when the user
+tries to execute an otherwise disabled function, such as using the
+<kbd>left</kbd> or <kbd>backspace</kbd> keys when already at the beginning of the line.
+
+Whether or not the BELL is audible/visible depends on the termin and its
+settings, i.e. some terminals may "beep" or flash the screen or emit a short
+vibration.
+
+The `setBell(bool $bell): void` method can be used to
+enable or disable emitting the BELL signal when using a disabled function:
+
+```php
+$stdio->setBell(false);
+```
+
+### Readline
+
+The deprecated `Readline` class is responsible for reacting to user input and
+presenting a prompt to the user. It does so by reading individual bytes from the
+input stream and writing the current *user input line* to the output stream.
+
+The deprecated `Readline` class is only used internally and should no longer be
+referenced from consuming projects.
+
+You can access the current instance through the [`Stdio`](#stdio):
+
+```php
+// deprecated
+$readline = $stdio->getReadline();
+```
+
+All methods that are available on the `Readline` instance are now available on
+the `Stdio` class. For BC reasons, they remain available on the `Readline` class
+until the next major release, see also above for more details.
+
+```php
+// deprecated
+$readline->setPrompt('> ');
+
+// new
+$stdio->setPrompt('> ');
+```
+
+Internally, the `Readline` is also a well-behaving readable stream
+(implementing ReactPHP's `ReadableStreamInterface`) that emits each complete
+line as a `data` event, including the trailing newline.
+This is considered advanced usage.
+
 ## Pitfalls
 
-The [`Readline`](#readline) has to redraw the current user
+The [`Stdio`](#stdio) has to redraw the current user
 input line whenever output is written to the `STDOUT`.
 Because of this, it is important to make sure any output is always
 written like this instead of using `echo` statements:
@@ -592,7 +622,7 @@ This project follows [SemVer](https://semver.org/).
 This will install the latest supported version:
 
 ```bash
-$ composer require clue/stdio-react:^2.2
+$ composer require clue/stdio-react:^2.3
 ```
 
 See also the [CHANGELOG](CHANGELOG.md) for details about version upgrades.

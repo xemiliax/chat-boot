@@ -1,16 +1,15 @@
 <?php
 /* ===========================================================================
- * Copyright (c) 2014-2018 The Opis Project
+ * Copyright (c) 2018-2019 Zindex Software
  *
  * Licensed under the MIT License
  * =========================================================================== */
 
 namespace Opis\Closure;
 
-use SplObjectStorage;
-
 /**
  * Closure context class
+ * @internal
  */
 class ClosureContext
 {

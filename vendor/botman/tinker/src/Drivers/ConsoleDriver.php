@@ -2,15 +2,15 @@
 
 namespace BotMan\Tinker\Drivers;
 
-use Clue\React\Stdio\Stdio;
-use BotMan\BotMan\Users\User;
-use Illuminate\Support\Collection;
-use BotMan\BotMan\Messages\Incoming\Answer;
 use BotMan\BotMan\Interfaces\DriverInterface;
-use BotMan\BotMan\Messages\Outgoing\Question;
-use Symfony\Component\HttpFoundation\Response;
+use BotMan\BotMan\Messages\Incoming\Answer;
 use BotMan\BotMan\Messages\Incoming\IncomingMessage;
 use BotMan\BotMan\Messages\Outgoing\OutgoingMessage;
+use BotMan\BotMan\Messages\Outgoing\Question;
+use BotMan\BotMan\Users\User;
+use Clue\React\Stdio\Stdio;
+use Illuminate\Support\Collection;
+use Symfony\Component\HttpFoundation\Response;
 
 class ConsoleDriver implements DriverInterface
 {
@@ -44,8 +44,8 @@ class ConsoleDriver implements DriverInterface
         $this->config = Collection::make($config);
         $this->client = $client;
 
-        $this->client->on('line', function ($line) {
-            $this->message = $line;
+        $this->client->on('data', function ($line) {
+            $this->message = rtrim($line, "\r\n");
         });
     }
 
@@ -114,7 +114,7 @@ class ConsoleDriver implements DriverInterface
      */
     public function types(IncomingMessage $matchingMessage)
     {
-        $this->client->writeln(self::BOT_NAME.': ...');
+        $this->client->write(self::BOT_NAME.': ...'.PHP_EOL);
     }
 
     /**
@@ -163,11 +163,11 @@ class ConsoleDriver implements DriverInterface
     public function sendPayload($payload)
     {
         $questionData = $payload['questionData'];
-        $this->client->writeln(self::BOT_NAME.': '.$payload['text']);
+        $this->client->write(self::BOT_NAME.': '.$payload['text'].PHP_EOL);
 
         if (! is_null($questionData)) {
             foreach ($questionData['actions'] as $key => $action) {
-                $this->client->writeln(($key + 1).') '.$action['text']);
+                $this->client->write(($key + 1).') '.$action['text'].PHP_EOL);
             }
             $this->hasQuestion = true;
             $this->lastQuestions = $questionData['actions'];

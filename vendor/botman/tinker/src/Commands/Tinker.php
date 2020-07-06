@@ -2,12 +2,12 @@
 
 namespace BotMan\Tinker\Commands;
 
-use Clue\React\Stdio\Stdio;
-use React\EventLoop\Factory;
-use Illuminate\Console\Command;
 use BotMan\BotMan\BotManFactory;
 use BotMan\BotMan\Cache\ArrayCache;
 use BotMan\Tinker\Drivers\ConsoleDriver;
+use Clue\React\Stdio\Stdio;
+use Illuminate\Console\Command;
+use React\EventLoop\Factory;
 
 class Tinker extends Command
 {
@@ -26,16 +26,6 @@ class Tinker extends Command
     protected $description = 'Tinker around with BotMan.';
 
     /**
-     * Create a new command instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        parent::__construct();
-    }
-
-    /**
      * Execute the console command.
      *
      * @return mixed
@@ -51,11 +41,11 @@ class Tinker extends Command
             $botman = BotManFactory::create($config, new ArrayCache());
 
             $stdio = new Stdio($loop);
-            $stdio->getReadline()->setPrompt('You: ');
+            $stdio->setPrompt('You: ');
 
             $botman->setDriver(new ConsoleDriver($config, $stdio));
 
-            $stdio->on('line', function ($line) use ($botman) {
+            $stdio->on('data', function ($line) use ($botman) {
                 $botman->listen();
             });
 

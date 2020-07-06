@@ -1,6 +1,6 @@
 <?php
 /* ===========================================================================
- * Copyright (c) 2014-2018 The Opis Project
+ * Copyright (c) 2018-2019 Zindex Software
  *
  * Licensed under the MIT License
  * =========================================================================== */
@@ -11,7 +11,6 @@ use Closure;
 use Serializable;
 use SplObjectStorage;
 use ReflectionObject;
-use ReflectionProperty;
 
 /**
  * Provides a wrapper for serialization of closures
@@ -133,7 +132,7 @@ class SerializableClosure implements Serializable
             if($scope = $reflector->getClosureScopeClass()){
                 $scope = $scope->name;
             }
-        } elseif($reflector->isScopeRequired()) {
+        } else {
             if($scope = $reflector->getClosureScopeClass()){
                 $scope = $scope->name;
             }
@@ -143,7 +142,7 @@ class SerializableClosure implements Serializable
 
         $this->scope[$this->closure] = $this;
 
-        $use = $reflector->getUseVariables();
+        $use = $this->transformUseVariables($reflector->getUseVariables());
         $code = $reflector->getCode();
 
         $this->mapByReference($use);
@@ -156,8 +155,9 @@ class SerializableClosure implements Serializable
             'self' => $this->reference,
         ));
 
-        if(static::$securityProvider !== null){
-            $ret =  '@' . json_encode(static::$securityProvider->sign($ret));
+        if (static::$securityProvider !== null) {
+            $data = static::$securityProvider->sign($ret);
+            $ret =  '@' . $data['hash'] . '.' . $data['closure'];
         }
 
         if (!--$this->scope->serializations && !--$this->scope->toserialize) {
@@ -165,6 +165,17 @@ class SerializableClosure implements Serializable
         }
 
         return $ret;
+    }
+
+    /**
+     * Transform the use variables before serialization.
+     *
+     * @param  array  $data The Closure's use variables
+     * @return array
+     */
+    protected function transformUseVariables($data)
+    {
+        return $data;
     }
 
     /**
@@ -177,15 +188,54 @@ class SerializableClosure implements Serializable
     {
         ClosureStream::register();
 
-        if($data[0] === '@'){
-            $data = json_decode(substr($data, 1), true);
-            if(static::$securityProvider !== null){
-                if(!static::$securityProvider->verify($data)){
-                    throw new SecurityException("Your serialized closure might have been modified and it's unsafe to be unserialized." .
-                        "Make sure you are using the same security provider, with the same settings, " .
-                        "both for serialization and unserialization.");
-                }
+        if (static::$securityProvider !== null) {
+            if ($data[0] !== '@') {
+                throw new SecurityException("The serialized closure is not signed. ".
+                    "Make sure you use a security provider for both serialization and unserialization.");
             }
+
+            if ($data[1] !== '{') {
+                $separator = strpos($data, '.');
+                if ($separator === false) {
+                    throw new SecurityException('Invalid signed closure');
+                }
+                $hash = substr($data, 1, $separator - 1);
+                $closure = substr($data, $separator + 1);
+
+                $data = ['hash' => $hash, 'closure' => $closure];
+
+                unset($hash, $closure);
+            } else {
+                $data = json_decode(substr($data, 1), true);
+            }
+
+            if (!is_array($data) || !static::$securityProvider->verify($data)) {
+                throw new SecurityException("Your serialized closure might have been modified and it's unsafe to be unserialized. " .
+                    "Make sure you use the same security provider, with the same settings, " .
+                    "both for serialization and unserialization.");
+            }
+
+            $data = $data['closure'];
+        } elseif ($data[0] === '@') {
+            if ($data[1] !== '{') {
+                $separator = strpos($data, '.');
+                if ($separator === false) {
+                    throw new SecurityException('Invalid signed closure');
+                }
+                $hash = substr($data, 1, $separator - 1);
+                $closure = substr($data, $separator + 1);
+
+                $data = ['hash' => $hash, 'closure' => $closure];
+
+                unset($hash, $closure);
+            } else {
+                $data = json_decode(substr($data, 1), true);
+            }
+
+            if (!is_array($data) || !isset($data['closure']) || !isset($data['hash'])) {
+                throw new SecurityException('Invalid signed closure');
+            }
+
             $data = $data['closure'];
         }
 
@@ -198,6 +248,7 @@ class SerializableClosure implements Serializable
 
         if ($this->code['use']) {
             $this->scope = new ClosureScope();
+            $this->code['use'] = $this->resolveUseVariables($this->code['use']);
             $this->mapPointers($this->code['use']);
             extract($this->code['use'], EXTR_OVERWRITE | EXTR_REFS);
             $this->scope = null;
@@ -209,9 +260,7 @@ class SerializableClosure implements Serializable
             $this->code['this'] = null;
         }
 
-        if ($this->code['scope'] !== null || $this->code['this'] !== null) {
-            $this->closure = $this->closure->bindTo($this->code['this'], $this->code['scope']);
-        }
+        $this->closure = $this->closure->bindTo($this->code['this'], $this->code['scope']);
 
         if(!empty($this->code['objects'])){
             foreach ($this->code['objects'] as $item){
@@ -220,6 +269,17 @@ class SerializableClosure implements Serializable
         }
 
         $this->code = $this->code['function'];
+    }
+
+    /**
+     * Resolve the use variables after unserialization.
+     *
+     * @param  array  $data The Closure's transformed use variables
+     * @return array
+     */
+    protected function resolveUseVariables($data)
+    {
+        return $data;
     }
 
     /**
@@ -284,6 +344,14 @@ class SerializableClosure implements Serializable
     }
 
     /**
+     * Remove security provider
+     */
+    public static function removeSecurityProvider()
+    {
+        static::$securityProvider = null;
+    }
+
+    /**
      * @return null|ISecurityProvider
      */
     public static function getSecurityProvider()
@@ -294,13 +362,12 @@ class SerializableClosure implements Serializable
     /**
      * Wrap closures
      *
+     * @internal
      * @param $data
      * @param ClosureScope|SplObjectStorage|null $storage
      */
     public static function wrapClosures(&$data, SplObjectStorage $storage = null)
     {
-        static::enterContext();
-
         if($storage === null){
             $storage = static::$context->scope;
         }
@@ -348,7 +415,7 @@ class SerializableClosure implements Serializable
                     break;
                 }
                 foreach ($reflection->getProperties() as $property){
-                    if($property->isStatic()){
+                    if($property->isStatic() || !$property->getDeclaringClass()->isUserDefined()){
                         continue;
                     }
                     $property->setAccessible(true);
@@ -360,13 +427,12 @@ class SerializableClosure implements Serializable
                 };
             } while($reflection = $reflection->getParentClass());
         }
-
-        static::exitContext();
     }
 
     /**
      * Unwrap closures
      *
+     * @internal
      * @param $data
      * @param SplObjectStorage|null $storage
      */
@@ -410,7 +476,7 @@ class SerializableClosure implements Serializable
                     break;
                 }
                 foreach ($reflection->getProperties() as $property){
-                    if($property->isStatic()){
+                    if($property->isStatic() || !$property->getDeclaringClass()->isUserDefined()){
                         continue;
                     }
                     $property->setAccessible(true);
@@ -425,7 +491,22 @@ class SerializableClosure implements Serializable
     }
 
     /**
+     * Creates a new closure from arbitrary code,
+     * emulating create_function, but without using eval
+     *
+     * @param string$args
+     * @param string $code
+     * @return Closure
+     */
+    public static function createClosure($args, $code)
+    {
+        ClosureStream::register();
+        return include(ClosureStream::STREAM_PROTO . '://function(' . $args. '){' . $code . '};');
+    }
+
+    /**
      * Internal method used to map closure pointers
+     * @internal
      * @param $data
      */
     protected function mapPointers(&$data)
@@ -476,7 +557,7 @@ class SerializableClosure implements Serializable
                     break;
                 }
                 foreach ($reflection->getProperties() as $property){
-                    if($property->isStatic()){
+                    if($property->isStatic() || !$property->getDeclaringClass()->isUserDefined()){
                         continue;
                     }
                     $property->setAccessible(true);
@@ -499,6 +580,7 @@ class SerializableClosure implements Serializable
     /**
      * Internal method used to map closures by reference
      *
+     * @internal
      * @param   mixed &$data
      */
     protected function mapByReference(&$data)
@@ -567,7 +649,7 @@ class SerializableClosure implements Serializable
                     break;
                 }
                 foreach ($reflection->getProperties() as $property){
-                    if($property->isStatic()){
+                    if($property->isStatic() || !$property->getDeclaringClass()->isUserDefined()){
                         continue;
                     }
                     $property->setAccessible(true);
