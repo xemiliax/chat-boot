@@ -148,7 +148,7 @@ return [
         Illuminate\Translation\TranslationServiceProvider::class,
         Illuminate\Validation\ValidationServiceProvider::class,
         Illuminate\View\ViewServiceProvider::class,
-       // Mpociot\BotMan\BotManServiceProvider::class,
+        Mpociot\BotMan\BotManServiceProvider::class,
         'BotMan' => Mpociot\BotMan\Facades\BotMan::class,
 
         /*

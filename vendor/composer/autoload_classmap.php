@@ -107,6 +107,8 @@ return array(
     'BotMan\\BotMan\\Traits\\HandlesExceptions' => $vendorDir . '/botman/botman/src/Traits/HandlesExceptions.php',
     'BotMan\\BotMan\\Traits\\ProvidesStorage' => $vendorDir . '/botman/botman/src/Traits/ProvidesStorage.php',
     'BotMan\\BotMan\\Users\\User' => $vendorDir . '/botman/botman/src/Users/User.php',
+    'BotMan\\Drivers\\HipChat\\HipChatDriver' => $vendorDir . '/botman/driver-hipchat/src/HipChatDriver.php',
+    'BotMan\\Drivers\\HipChat\\Providers\\HipChatServiceProvider' => $vendorDir . '/botman/driver-hipchat/src/Providers/HipChatServiceProvider.php',
     'BotMan\\Drivers\\Web\\Providers\\WebServiceProvider' => $vendorDir . '/botman/driver-web/src/Providers/WebServiceProvider.php',
     'BotMan\\Drivers\\Web\\WebDriver' => $vendorDir . '/botman/driver-web/src/WebDriver.php',
     'BotMan\\Studio\\Composer' => $vendorDir . '/botman/studio-addons/src/Composer.php',

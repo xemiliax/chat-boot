@@ -14,17 +14,17 @@ class ComposerStaticInitbbb0d0f3eee254eb4d1102e1ac13349d
         '0d59ee240a4cd96ddbb4ff164fccea4d' => __DIR__ . '/..' . '/symfony/polyfill-php73/bootstrap.php',
         'ad155f8f1cf0d418fe49e248db8c661b' => __DIR__ . '/..' . '/react/promise/src/functions_include.php',
         '320cde22f66dd4f5d3fd621d3e88b98f' => __DIR__ . '/..' . '/symfony/polyfill-ctype/bootstrap.php',
-        '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
         '667aeda72477189d0494fecd327c3641' => __DIR__ . '/..' . '/symfony/var-dumper/Resources/functions/dump.php',
+        '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
         'c964ee0ededf28c96ebd9db5099ef910' => __DIR__ . '/..' . '/guzzlehttp/promises/src/functions_include.php',
         'a0edc8309cc5e1d60e3047b5df6b7052' => __DIR__ . '/..' . '/guzzlehttp/psr7/src/functions_include.php',
         '37a3dc5111fe8f707ab4c132ef1dbc62' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/functions_include.php',
         '972fda704d680a3a53c68e34e193cb22' => __DIR__ . '/..' . '/react/promise-timer/src/functions_include.php',
         '538ca81a9a966a6716601ecf48f4eaef' => __DIR__ . '/..' . '/opis/closure/functions.php',
-        'def43f6c87e4f8dfd0c9e1b1bab14fe8' => __DIR__ . '/..' . '/symfony/polyfill-iconv/bootstrap.php',
-        '2c102faa651ef8ea5874edb585946bce' => __DIR__ . '/..' . '/swiftmailer/swiftmailer/lib/swift_required.php',
         'fe62ba7e10580d903cc46d808b5961a4' => __DIR__ . '/..' . '/tightenco/collect/src/Collect/Support/helpers.php',
         'caf31cc6ec7cf2241cb6f12c226c3846' => __DIR__ . '/..' . '/tightenco/collect/src/Collect/Support/alias.php',
+        'def43f6c87e4f8dfd0c9e1b1bab14fe8' => __DIR__ . '/..' . '/symfony/polyfill-iconv/bootstrap.php',
+        '2c102faa651ef8ea5874edb585946bce' => __DIR__ . '/..' . '/swiftmailer/swiftmailer/lib/swift_required.php',
         'cf97c57bfe0f23854afd2f3818abb7a0' => __DIR__ . '/..' . '/zendframework/zend-diactoros/src/functions/create_uploaded_file.php',
         '9bf37a3d0dad93e29cb4e1b1bfab04e9' => __DIR__ . '/..' . '/zendframework/zend-diactoros/src/functions/marshal_headers_from_sapi.php',
         'ce70dccb4bcc2efc6e94d2ee526e6972' => __DIR__ . '/..' . '/zendframework/zend-diactoros/src/functions/marshal_method_from_sapi.php',
@@ -186,6 +186,7 @@ class ComposerStaticInitbbb0d0f3eee254eb4d1102e1ac13349d
             'BotMan\\Tinker\\' => 14,
             'BotMan\\Studio\\' => 14,
             'BotMan\\Drivers\\Web\\' => 19,
+            'BotMan\\Drivers\\HipChat\\' => 23,
             'BotMan\\BotMan\\' => 14,
             'BeyondCode\\DumpServer\\' => 22,
         ),
@@ -528,6 +529,10 @@ class ComposerStaticInitbbb0d0f3eee254eb4d1102e1ac13349d
         array (
             0 => __DIR__ . '/..' . '/botman/driver-web/src',
         ),
+        'BotMan\\Drivers\\HipChat\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/botman/driver-hipchat/src',
+        ),
         'BotMan\\BotMan\\' => 
         array (
             0 => __DIR__ . '/..' . '/botman/botman/src',
@@ -679,6 +684,8 @@ class ComposerStaticInitbbb0d0f3eee254eb4d1102e1ac13349d
         'BotMan\\BotMan\\Traits\\HandlesExceptions' => __DIR__ . '/..' . '/botman/botman/src/Traits/HandlesExceptions.php',
         'BotMan\\BotMan\\Traits\\ProvidesStorage' => __DIR__ . '/..' . '/botman/botman/src/Traits/ProvidesStorage.php',
         'BotMan\\BotMan\\Users\\User' => __DIR__ . '/..' . '/botman/botman/src/Users/User.php',
+        'BotMan\\Drivers\\HipChat\\HipChatDriver' => __DIR__ . '/..' . '/botman/driver-hipchat/src/HipChatDriver.php',
+        'BotMan\\Drivers\\HipChat\\Providers\\HipChatServiceProvider' => __DIR__ . '/..' . '/botman/driver-hipchat/src/Providers/HipChatServiceProvider.php',
         'BotMan\\Drivers\\Web\\Providers\\WebServiceProvider' => __DIR__ . '/..' . '/botman/driver-web/src/Providers/WebServiceProvider.php',
         'BotMan\\Drivers\\Web\\WebDriver' => __DIR__ . '/..' . '/botman/driver-web/src/WebDriver.php',
         'BotMan\\Studio\\Composer' => __DIR__ . '/..' . '/botman/studio-addons/src/Composer.php',
