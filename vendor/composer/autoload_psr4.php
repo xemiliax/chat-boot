@@ -88,6 +88,7 @@ return array(
     'BotMan\\Tinker\\' => array($vendorDir . '/botman/tinker/src'),
     'BotMan\\Studio\\' => array($vendorDir . '/botman/studio-addons/src'),
     'BotMan\\Drivers\\Web\\' => array($vendorDir . '/botman/driver-web/src'),
+    'BotMan\\Drivers\\Telegram\\' => array($vendorDir . '/botman/driver-telegram/src'),
     'BotMan\\Drivers\\HipChat\\' => array($vendorDir . '/botman/driver-hipchat/src'),
     'BotMan\\BotMan\\' => array($vendorDir . '/botman/botman/src'),
     'BeyondCode\\DumpServer\\' => array($vendorDir . '/beyondcode/laravel-dump-server/src'),
